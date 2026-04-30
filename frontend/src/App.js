@@ -9,7 +9,7 @@ function Login({ onLogin }) {
 
   const login = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post("https://task-manager-production-ad42.up.railway.app/api/auth/login", {
         email,
         password,
       });
