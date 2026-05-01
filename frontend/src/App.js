@@ -1,118 +1,160 @@
-import React, { useState, useEffect, useCallback } from "react";
+import "./App.css";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Login from "./Login";
 
-const API_URL = "https://task-manager-production-ad42.up.railway.app";
+const API = process.env.REACT_APP_API || "http://localhost:5000";
 
 function App() {
   const [tasks, setTasks] = useState([]);
-  const [taskInput, setTaskInput] = useState("");
-  const [loggedIn, setLoggedIn] = useState(
-    !!localStorage.getItem("token")
-  );
+  const [input, setInput] = useState("");
+  const [token, setToken] = useState(localStorage.getItem("token"));
 
-  // ================= FETCH TASKS =================
-  const fetchTasks = useCallback(async () => {
+  // ✅ Fetch tasks
+  const fetchTasks = async () => {
     try {
-      const res = await axios.get(${API_URL}/api/tasks, {
-        headers: {
-          Authorization: Bearer ${localStorage.getItem("token")},
-        },
+      const res = await axios.get(`${API}/api/tasks`, {
+        headers: { Authorization: token }
       });
-
       setTasks(res.data);
     } catch (err) {
-      console.log("Fetch error:", err);
+      console.log(err);
     }
-  }, []);
+  };
 
-  // ================= LOAD TASKS =================
   useEffect(() => {
-    if (loggedIn) fetchTasks();
-  }, [loggedIn, fetchTasks]);
+    if (token) fetchTasks();
+  }, [token]);
 
-  // ================= LOGIN =================
-  const handleLogin = () => {
-    setLoggedIn(true);
-  };
-
-  // ================= LOGOUT =================
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setLoggedIn(false);
-  };
-
-  // ================= ADD TASK =================
+  // ✅ Add Task
   const addTask = async () => {
-    if (!taskInput) return;
+    if (!input.trim()) return;
 
     try {
-      const res = await axios.post(
-        ${API_URL}/api/tasks,
-        { text: taskInput },
-        {
-          headers: {
-            Authorization: Bearer ${localStorage.getItem("token")},
-          },
-        }
+      await axios.post(
+        `${API}/api/tasks`,
+        { title: input },
+        { headers: { Authorization: token } }
       );
-
-      setTasks([...tasks, res.data]);
-      setTaskInput("");
+      setInput("");
+      fetchTasks();
     } catch (err) {
-      console.log("Add error:", err);
+      console.log(err);
     }
   };
 
-  // ================= DELETE TASK =================
+  // ✅ Toggle Task
+  const toggleTask = async (id) => {
+    try {
+      await axios.put(
+        `${API}/api/tasks/${id}`,
+        {},
+        { headers: { Authorization: token } }
+      );
+      fetchTasks();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // ✅ Delete Task
   const deleteTask = async (id) => {
     try {
-      await axios.delete(${API_URL}/api/tasks/${id}, {
-        headers: {
-          Authorization: Bearer ${localStorage.getItem("token")},
-        },
+      await axios.delete(`${API}/api/tasks/${id}`, {
+        headers: { Authorization: token }
       });
-
-      setTasks(tasks.filter((task) => task._id !== id));
+      fetchTasks();
     } catch (err) {
-      console.log("Delete error:", err);
+      console.log(err);
     }
   };
 
-  // ================= UI =================
-  if (!loggedIn) {
-    return <Login onLogin={handleLogin} />;
-  }
+  // ✅ Logout
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken(null);
+  };
+
+  // ❌ If not logged in → show login
+  if (!token) return <Auth setToken={setToken} />;
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h2>🚀 Team Task Manager</h2>
+      <h2>🚀 Task Manager</h2>
 
-      <button onClick={handleLogout}>Logout</button>
+      <button onClick={logout}>Logout</button>
 
-      <h3>📊 Dashboard</h3>
-      <p>Completed: 0</p>
-      <p>Pending: {tasks.length}</p>
+      <div>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Enter task"
+        />
+        <button onClick={addTask}>Add</button>
+      </div>
 
-      <input
-        type="text"
-        placeholder="Enter task..."
-        value={taskInput}
-        onChange={(e) => setTaskInput(e.target.value)}
-      />
+      {tasks.map((task) => (
+        <div key={task._id}>
+          <span
+            style={{
+              textDecoration: task.completed ? "line-through" : "none",
+              marginRight: "10px"
+            }}
+          >
+            {task.title}
+          </span>
 
-      <button onClick={addTask}>Add Task</button>
-
-      <ul>
-        {tasks.map((task) => (
-          <li key={task._id}>
-            {task.text}
-            <button onClick={() => deleteTask(task._id)}>❌</button>
-          </li>
-        ))}
-      </ul>
+          <button onClick={() => toggleTask(task._id)}>✔</button>
+          <button onClick={() => deleteTask(task._id)}>❌</button>
+        </div>
+      ))}
     </div>
   );
 }
 
 export default App;
+function Auth({ setToken }) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const submit = async () => {
+    try {
+      const url = isLogin ? "/api/auth/login" : "/api/auth/register";
+
+      const res = await axios.post(`http://localhost:5000${url}`, {
+        email,
+        password
+      });
+
+      localStorage.setItem("token", res.data.token);
+      setToken(res.data.token);
+    } catch (err) {
+      alert("Error");
+    }
+  };
+
+  return (
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <h2>{isLogin ? "Login" : "Signup"}</h2>
+
+      <input
+        placeholder="Email"
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <button onClick={submit}>
+        {isLogin ? "Login" : "Signup"}
+      </button>
+
+      <p onClick={() => setIsLogin(!isLogin)} style={{ cursor: "pointer" }}>
+        {isLogin ? "Create account" : "Already have account?"}
+      </p>
+    </div>
+  );
+}
