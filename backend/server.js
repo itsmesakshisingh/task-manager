@@ -14,7 +14,7 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/tasks", require("./routes/task"));
 app.use("/api/projects", require("./routes/project"));
 
-// Root route (IMPORTANT)
+// Root route
 app.get("/", (req, res) => {
   res.send("Task Manager API is running 🚀");
 });
@@ -27,8 +27,7 @@ mongoose.connect(process.env.MONGO_URI)
     const PORT = process.env.PORT || 5000;
 
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`); // ✅ FIXED
     });
-
   })
   .catch(err => console.log(err));
