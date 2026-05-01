@@ -21,9 +21,9 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (token) fetchTasks();
-  }, [token]);
+useEffect(() => {
+  if (token) fetchTasks();
+}, [token, fetchTasks]);
 
   // ✅ Add Task
   const addTask = async () => {
